@@ -23,9 +23,9 @@ db_user: 'YOUR-DB-USER' #should match your database.yml
 db_password: 'YOUR-DB-PASSWORD' #should match your database.yml
 
 # SVN Repository
-svn_user: 'YOUR-SVN-USER'
+svn_username: 'YOUR-SVN-USER'
 svn_password: 'YOUR-SVN-USER-PASSWORD'
-svn_repository: 'YOUR-REPOSITORY-URL' #ex:'http://quizical.unfuddle.com/svn/quizical/'
+repository: 'YOUR-REPOSITORY-URL' #ex:'http://quizical.unfuddle.com/svn/quizical/'
 
 # options:
 application: 'YOUR-APPLICATION-NAME'
@@ -35,6 +35,9 @@ mode: 'production'
 use_ssl: false
 
 # litespeed related
+# litespeed webserver is already installed on ec2 image ami-08806561. The 
+# administrative interface can be found at your url:7080. The admin username
+# is admin. The admin password is 'ec2admin'. This, of course, should be changed.
 ls_bin: '/opt/lsws/bin/lswsctrl'
 
 # Packages Locations

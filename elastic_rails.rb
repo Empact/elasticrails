@@ -1,30 +1,26 @@
+require 'yaml'
+require 'erb'
 require 'rubygems'
 require_gem 'amazon-ec2'
 require 'capistrano'
 
-#module Capistrano
-#  class Actor
-    
-#  def method_missing(sym)
-#    aws.login
-#    sym = nil
-    #puts "what happens"
-    #breakpoint
-     #@actor.send(sym, *args, &block)
-    #super #want to call the method_missing in ActiveResource::Base first...
-      #rescue NoMethodError
-        #aws.login
-        #attributes[method_symbol.to_s] => nil
-        #nil
-      #end
-#    end
-#  end
-#end
-#end
-
 Capistrano.configuration(:must_exist).load do 
   
-  # The actor methods in the /lib recipe files can not be called directly by Capistrano
+  @er_config ||= YAML::load(ERB.new(IO.read(File.join(File.dirname(__FILE__), '/config/aws.yml'))).result)
+  
+  set :user, @er_config['user'] unless user
+  set :server, @er_config['server']
+  set :application, @er_config['application'] unless application
+  set :deploy_to, "/home/#{@er_config['user']}/#{application}"
+  set :repository, @er_config['repository'] unless repository
+  set :
+
+  role :web, @er_config['url'] if roles[:web].empty?
+  role :app, @er_config['url'] if roles[:app].empty?
+  role :db,  @er_config['url'], :primary => true if roles[:db].empty?
+  
+  
+ # The actor methods in the /lib recipe files can not be called directly by Capistrano
   # using cap 'method'. If you would like to call these actor methods using the 'cap'
   # command, add them here, like so:
   # task :my_new_cap_command do

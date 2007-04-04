@@ -5,15 +5,15 @@
   def create_databases #, :roles => :db, :only => { :primary => true } do
     on_rollback do 
       run <<-CMD
-        mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} drop #{aws('application')}_development &&
-        mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} drop #{aws('application')}_test &&
-        mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} drop #{aws('application')}_production
+        mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} drop #{application}_development &&
+        mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} drop #{application}_test &&
+        mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} drop #{application}_production
       CMD
     end
     run <<-CMD
-      mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} create #{aws('application')}_development &&
-      mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} create #{aws('application')}_test &&
-      mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} create #{aws('application')}_production
+      mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} create #{application}_development &&
+      mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} create #{application}_test &&
+      mysqladmin -u #{aws('db_user')} -p#{aws('db_password')} create #{application}_production
     CMD
   end
   
@@ -33,9 +33,9 @@
 
     sudo <<-CMD
       mysql -u root -p#{aws('db_password')} -e "GRANT ALL PRIVILEGES ON *.* TO '#{aws('db_user')}'@'%' IDENTIFIED BY '#{aws('db_password')}' WITH GRANT OPTION;" &&
-      mysql -u root -p#{aws('db_password')} -e "GRANT ALL PRIVILEGES ON *.* TO '#{aws('secondary_user')}'@'%' IDENTIFIED BY '#{aws('secondary_password')}' WITH GRANT OPTION;" &&
+      mysql -u root -p#{aws('db_password')} -e "GRANT ALL PRIVILEGES ON *.* TO '#{aws('user_secondary')}'@'%' IDENTIFIED BY '#{aws('user_secondary_password')}' WITH GRANT OPTION;" &&
       mysql -u root -p#{aws('db_password')} -e "GRANT ALL PRIVILEGES ON *.* TO '#{aws('db_user')}'@'localhost' IDENTIFIED BY '#{aws('db_password')}' WITH GRANT OPTION;" &&
-      mysql -u root -p#{aws('db_password')} -e "GRANT ALL PRIVILEGES ON *.* TO '#{aws('secondary_user')}'@'localhost' IDENTIFIED BY '#{aws('secondary_password')}' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+      mysql -u root -p#{aws('db_password')} -e "GRANT ALL PRIVILEGES ON *.* TO '#{aws('user_secondary')}'@'localhost' IDENTIFIED BY '#{aws('user_secondary_password')}' WITH GRANT OPTION; FLUSH PRIVILEGES;"
     CMD
 
     sudo "/sbin/chkconfig mysqld on"
