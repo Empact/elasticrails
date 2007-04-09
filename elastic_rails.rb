@@ -13,7 +13,8 @@ Capistrano.configuration(:must_exist).load do
   set :application, @er_config['application'] unless application
   set :deploy_to, "/home/#{@er_config['user']}/#{application}"
   set :repository, @er_config['repository'] unless repository
-  set :
+  set :svn_password, @er_config['svn_password']
+  set :svn_username, @er_config['svn_user']
 
   role :web, @er_config['url'] if roles[:web].empty?
   role :app, @er_config['url'] if roles[:app].empty?

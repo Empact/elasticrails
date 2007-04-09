@@ -23,7 +23,7 @@ db_user: 'YOUR-DB-USER' #should match your database.yml
 db_password: 'YOUR-DB-PASSWORD' #should match your database.yml
 
 # SVN Repository
-svn_username: 'YOUR-SVN-USER'
+svn_user: 'YOUR-SVN-USER'
 svn_password: 'YOUR-SVN-USER-PASSWORD'
 repository: 'YOUR-REPOSITORY-URL' #ex:'http://quizical.unfuddle.com/svn/quizical/'
 

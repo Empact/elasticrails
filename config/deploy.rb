@@ -3,7 +3,7 @@
 # (among other things) the deployment of your application.
 
 # Add the Elastic Rails Plugin
-$LOAD_PATH << "#{File.dirname(__FILE__)}/../vendor/plugins/elastic_rails"
+$LOAD_PATH << "#{File.dirname(__FILE__)}/../vendor/plugins/elasticrails"
 require 'elastic_rails'
 
 # =============================================================================
