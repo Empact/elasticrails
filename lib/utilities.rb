@@ -50,9 +50,10 @@ rake s3:manage:clean_up
 rake s3:manage:delete_object BUCKET=#{aws('application')} PREFIX=#{aws('cache')}
 EOF
 
-   put hourly_cron, "/home/#{aws('user')}/capistrano_hourly.cron", :mode => 0754
-   sudo "mv /home/#{aws('user')}/capistrano_hourly.cron /etc/cron.hourly/"
-   sudo "chown -R root:root /etc/cron.hourly/capistrano_hourly.cron"
+   put hourly_cron, "/home/#{aws('user')}/#{aws('application')}_hourly.cron", :mode => 0754
+   sudo "mv /home/#{aws('user')}/#{aws('application')}_hourly.cron /etc/cron.hourly/"
+  sudo "chown -R root:root /etc/cron.hourly/#{aws('application')}_hourly.cron"
+   
 end
 
 # Add the users and permissions we'll need on the server
