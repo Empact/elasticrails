@@ -3,7 +3,7 @@ require 'erb'
 require 'rubygems'
 require 'ec2'
   
-@er_config ||= YAML::load(ERB.new(IO.read(File.join(File.dirname(__FILE__), '/config/aws.yml'))).result)
+@er_config ||= YAML::load(ERB.new(IO.read(File.join(File.dirname(__FILE__), '/aws.yml'))).result)
 
 set :user, @er_config['user']
 set :server, @er_config['server']
