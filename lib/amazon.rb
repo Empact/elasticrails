@@ -5,8 +5,8 @@
   # Describe the available images to launch. To get public images to add id=amazon to your request.
   # Example: rake ec2:images id=844412190991
   def images
-    p ||= (ENV['id'])? ENV['id'] : 'self'
-    puts connect.describe_images([],["#{p}"],[])
+    #p ||= (ENV['id'])? ENV['id'] : 'self'
+    puts connect.describe_images
   end
   
   #Run an image. You must first get the ami id by running 'rake ec2:images.'
@@ -139,7 +139,7 @@
   private
   
   def connect
-    amazon = EC2::AWSAuthConnection.new(aws('access_key'), aws('secret_key'))
+    amazon = EC2::Base.new(:access_key_id => aws('access_key'), :secret_access_key => aws('secret_key'))
     raise Exception, "Connection to AWS failed. Check your Access Key ID and Secret Access Key - http://aws.amazon.com/" if amazon.nil?
     return amazon
   end
