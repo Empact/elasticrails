@@ -8,7 +8,7 @@ require 'ec2'
 set :user, @er_config['user']
 set :server, @er_config['server']
 set :application, @er_config['application']
-set :deploy_to, "/home/#{@er_config['user']}/#{application}"
+set :deploy_to, "/mnt/#{@er_config['user']}/#{application}"
 set :repository, @er_config['svn_repository']
 set :scm_password, @er_config['svn_password']
 set :scm_username, @er_config['svn_user']
@@ -124,7 +124,7 @@ Dir[File.join(File.dirname(__FILE__), '/lib/*.rb')].each { |f| eval File.read(f)
 # preference.
 
   def aws(set)
-    er_config = YAML::load(ERB.new(IO.read(File.join(File.dirname(__FILE__), '/config/aws.yml'))).result)
+    er_config = YAML::load(ERB.new(IO.read(File.join(File.dirname(__FILE__), '/aws.yml'))).result)
     eval set rescue er_config[set]
   end
 

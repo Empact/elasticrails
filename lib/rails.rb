@@ -24,9 +24,9 @@ def install_rails
 end
 
 # Setup Database Configuration
-def write_database_yaml #, :roles => :app do 
+def write_database_yaml #:roles => :app do 
   # generate database configuration 
-  database_configuration = render :template => <<-EOF 
+  database_configuration = <<-EOF
 defaults: &defaults
   adapter: #{aws('db_adapter')} 
   username: #{aws('db_user')}
@@ -45,7 +45,9 @@ production:
   database: #{aws('application')}_production 
   <<: *defaults
   EOF
-
-  put database_configuration, "#{aws('current_release')}/config/database.yml", :mode => 0664
-  sudo "chown -R #{aws('user')}:#{aws('group')} #{aws('current_release')}/config/database.yml" 
+  
+  #run "mkdir -p #{shared_path}/config" 
+  put database_configuration, "#{release_path}/config/database.yml", :mode => 0664
+  sudo "chown -R #{aws('user')}:#{aws('group')} #{release_path}/config/database.yml" 
+  #run "ln -nfs #{shared_path}/config/database.yml #{release_path}/config/database.yml"
 end
