@@ -25,6 +25,8 @@ role :db,  @er_config['url'], :primary => true if roles[:db].empty?
 #  aws.my_actor_method
 # end
 
+after "deploy:update_code", :symlink_db_yaml
+
 task :complete_bundle do
   er.copy_keys
   er.complete_bundle
@@ -114,14 +116,6 @@ module ElasticRails
 # All recipe files go in lib. Adding new recipes is a simple 
 # as adding new files in lib
 Dir[File.join(File.dirname(__FILE__), '/lib/*.rb')].each { |f| eval File.read(f) }
-
-# Check to see if the variable is set in deploy.rb. If not, grab it elastic_rails/config/aws.yml
-# Is this a good decision? Should I make users set their cap variables in deploy.rb? I preferred
-# not to overwrite the existing deploy.rb file. But I wanted to make it as easy for new users to
-# set up a deployment. A yaml seemed right, particularly for the AWS credentials. Having that in
-# a yaml, then it was a quick jump to put more deployment variables in the yaml. Users can still
-# use deploy.rb to set their variables, but they can also use the yaml. Deploy.rb variables have
-# preference.
 
   def aws(set)
     er_config = YAML::load(ERB.new(IO.read(File.join(File.dirname(__FILE__), '/aws.yml'))).result)
