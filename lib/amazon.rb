@@ -1,158 +1,192 @@
-# ----------------------------------------------------------
-# EC2 related tasks
-# ----------------------------------------------------------
-
-  # Describe the available images to launch. To get public images to add id=amazon to your request.
-  # Example: rake ec2:images id=844412190991
-  def images
-    #p ||= (ENV['id'])? ENV['id'] : 'self'
-    puts connect.describe_images
+namespace :ec2 do
+  desc "initialize the AWS variable"
+  task :aws do
+   @aws = Aws.new
   end
   
-  #Run an image. You must first get the ami id by running 'rake ec2:images.'
-  #Example - cap run -s image=ami-61a54008
-  def launch_instance(image)
-    setup_keypair unless keypair_exists?(aws('keypair_name'))
-    instance = connect.run_instances(image, :keyname=>aws('keypair_name')).parse[1]
-    puts instance[0]
-    raise Exception, "Instance did not start" unless instance[4] == "pending"
-    instance_id = instance[1]
-    puts "Instance #{instance_id} Startup Pending"
-  
-    #loop checking for instance startup
-    puts "Checking every 10 seconds to detect startup for up to 5 minutes"
-    tries = 0
-      while tries < 35
-        instance_desc = connect.describe_instances.parse.select { |i| i[1] == instance_id.to_s }[0]
-        case instance_desc[4]
-          when "pending"
-            puts instance_desc[4]
-            sleep 10
-            tries += 1
-          when "running"
-            puts "running " + instance_desc[3]
-            return
-          else
-            puts "error initializing instance: #{instance_desc[4]}"
-            return
-        end
-      end
-     puts "error initalizing instance"
+  task :login do
+    @aws.bash "ssh -i #{@aws.key[:path]+"id_rsa-" + @aws.key[:name]} #{user}@#{@aws.access[:url]}"
   end
-  
-  # Describe instances that are currently running
-  def instances
-    puts connect.describe_instances
-  end
-  
-  # Copy Keys to EC2 Server
-  def copy_keys
-    bash "scp -i #{aws('key_path')}id_rsa-#{aws('keypair_name')} #{ENV['EC2_PRIVATE_KEY']} #{ENV['EC2_CERT']} root@#{aws('url')}:/tmp"
-  end
-  
-  # Delete keypair
-  def delete_keypair(keypair)
-    connect.delete_keypair(keypair)
-  end
-  
-  def keypair_exists?(keypair)
-    connect.describe_keypairs.parse.each { |k| return true if k[1] == keypair}
-    false
-  end
-  
-  # Create a keypair
-  def setup_keypair
-    keypair_name = aws('keypair_name')
-    private_key_path = aws('key_path')
-    puts connect.describe_keypairs
-    
-    #create a new key if one doesn't exist
-    if connect.describe_keypairs(keypair_name).parse.empty?
-    
-      #create keypair
-      private_key = connect.create_keypair(keypair_name)
-      raise Exception, "Private Key not correctly generated" unless private_key.parse[0][0] == "KEYPAIR"
-      puts "Keypair \"#{keypair_name}\" generated"
-    
-      begin
-        unless private_key_path == nil
-          #write private key to file
-          text_private_key = private_key.parse.inject("") { |text_private_key, a| a.join("\t") + "\n" }
-          File.open(private_key_path + "id_rsa-"+keypair_name, "wb+") { |f| f.write(text_private_key) }
-          system "chmod 600 #{private_key_path + "id_rsa-" + keypair_name}"
-          puts "Written to ./#{private_key_path}"
-        end
-      rescue
-        connect.delete_keypair(keypair_name)
-        puts "Error in writing the keypair"
-      end
-
+   
+  desc "return your own amazon images."
+  task :images do
+    @aws.connect.describe_images(:owner_id => "self").imagesSet.item.each do |image|
+     	 str = image.imageId
+     	 str << " ("
+     	 str << image.imageLocation
+     	 str << ") status: ("
+     	 str << 
+     	 str << image.imageState
+     	 str << " and "
+     	 p = (image.isPublic == "true")? "public" : "private"
+     	 str << p
+     	 str << ")"
+     	 puts str
     end
   end
   
-  # Bundle our ec2 instance
-  def bundle_instance 
-    sudo "ec2-bundle-vol -k /tmp/pk-*.pem -u #{aws('account')} -s 1536 -d /mnt -c /tmp/cert-*.pem -p #{get_timestamp}"
+  set(:ami) do
+    Capistrano::CLI.ui.ask "What is the image ami you would like to launch? (use ami-08806561 as default)"
   end
+  
+  desc <<-DESC
+  Run an image. You must first get the ami id by running cap ec2:images.
+  Example - cap -s image=ami-08806561 launch_instance
+  DESC
+  task :launch_instance do
+    setup_keyname
+    reservation = @aws.connect.run_instances(:image_id => ami, :key_name=>@aws.key[:name])
+    reservation.instancesSet.item.each do |item|
+      raise Exception, "Instance did not start." unless item.instanceState.name == "pending"
+      puts "Instance #{item.instanceId} Startup Pending" 
+       #loop checking for instance startup
+       puts "Checking every 10 seconds to detect startup for up to 5 minutes"
+       tries = 0
+         while tries < 35
+           launched = @aws.connect.describe_instances(:instance_id =>[item.instanceId]).reservationSet.item.first.instancesSet.item.first
+           case launched.instanceState.name
+             when "pending"
+               puts launched.instanceState.name
+               sleep 10
+               tries += 1
+             when "running"
+               puts "running " + launched.dnsName
+               break
+             else
+               puts "error initializing instance: #{item.instanceId}"
+               break
+           end
+         end
+      end
+  end
+  
+  set(:terminate_id) do
+    Capistrano::CLI.ui.ask "What is the instance id you would like to terminate? "
+  end
+  
+  set(:instance_id) do
+    Capistrano::CLI.ui.ask "What is the instance id you would like to check? "
+  end
+  
+  desc <<-DESC 
+  Terminate an instance. You must first get the id by running cap ec2:instances.
+  Example - rake -s id=i-5f826536 ec2:terminate 
+  DESC
+  task :terminate do
+      instance = @aws.connect.terminate_instances(:instance_id => [terminate_id]).instancesSet.item.first
+      puts instance.instanceId + " " + instance.shutdownState.name
+  end
+  
+  task :instance do
+    puts @aws.connect.describe_instances(:instance_id =>[instance_id]).reservationSet.item.first.instancesSet.item.first.dnsName
+  end
+  
+  desc <<-DESC
+  Returns all of your currently running instances
+  DESC
+  task :instances do
+    @aws.connect.describe_instances.reservationSet.item.each do |set|
+      set.instancesSet.item.each do |instance|
+       str = instance.instanceId
+       str << " ("
+       str << instance.instanceState.name
+       if instance.instanceState.name == "running"
+         str << " at "
+         str << instance.dnsName
+         str << " on image "
+         str << instance.imageId
+       end
+       str << ")"
+       puts str
+      end
+    end
+  end
+  
+  desc <<-DESC
+  Create the key pair if it has not already been created.
+  DESC
+  task :setup_keyname do
+    keyname = @aws.key[:name]
+    if keypair_needed?
+     create_keypair
+    else
+      puts @aws.connect.describe_keypairs(:key_name => [@aws.key[:name]]).keySet
+    end
+  end
+  
+  task :keypair_needed? do
+    @aws.connect.describe_keypairs(:key_name => [@aws.key[:name]]).keySet.nil?
+  end
+  
+  task :create_keypair do
+    keyname = @aws.key[:name]
+    keypath = @aws.key[:path]
+    key = @aws.connect.create_keypair(:key_name => keyname)
+    puts key.keyName
+    #TODO: exception handling
+    
+    begin
+      unless keypath == nil
+        #write private key to file
+        File.open(keypath + "id_rsa-"+keyname, "wb+") { |f| f.write(key.keyMaterial) }
+        system "chmod 600 #{keypath + "id_rsa-" + keyname}"
+        puts "Written to #{keypath}"
+      end
+    rescue
+      delete_keypair
+      puts "Error in writing the keypair"
+    end
+  end
+  
+  desc <<-DESC
+  Copy the keys up to the server
+  DESC
+  def copy_keys
+    run "scp -i #{@aws.key[:path]}id_rsa-#{@aws.key[:name]} #{ENV['EC2_PRIVATE_KEY']} #{ENV['EC2_CERT']} root@#{@aws.access[:url]}:/tmp"
+  end
+  
+  task :delete_keypair do
+    keyname = @aws.key[:name]
+    @aws.connect.delete_keypair(:key_name => keyname)
+    #TODO: exception handling
+  end
+  
+  on :before, "ec2:aws", :except => "ec2:aws"
+end
 
-  # Upload our remote ec2 image to s3
-  def upload_image
-    sudo "ec2-upload-bundle -b #{aws('image_bucket')} -m /mnt/#{get_timestamp}.manifest.xml -a #{aws('access_key')} -s #{aws('secret_key')}"
-  end
-  
-  # Register the image at ec2"
-  def register
-    connect.register_image(aws('image_bucket')+ "/#{get_timestamp}.manifest.xml")
-  end
-  
-  # Bundle and upload the image to s3"
-  def complete_bundle
-    bundle_instance
-    upload_image
-    register
-    puts "Enjoy your new instance"
-  end
-  
-  # Terminate an instance. You must first get the id by running 'rake ec2:instances.'
-  # Example - rake ec2:terminate id=i-5f826536
-  def terminate(instance_id)
-      puts connect.terminate_instances(instance_id)
-  end
-  
-  # Login to our EC2 instance. You can pass in the username with id=username
-  # Example - rake ec2:login id=steveodom
-  def login(usr = 'root') 
-    #usr = (ENV['id'])? ENV['id'] : 'root'
-    bash "ssh -i #{aws('key_path')+"id_rsa-" + aws('keypair_name')} #{usr}@#{aws('url')}"
-  end
-  
-  # Install Amazon AWS Tools to bundle and upload if needed ALREADY INSTALLED ON IMAGE
-  def install_amazon_tools
-    #Amazon AWS tools
-    run <<-CMD
-      wget http://s3.amazonaws.com/ec2-downloads/ec2-ami-tools.noarch.rpm && 
-      rpm -i ec2-ami-tools.noarch.rpm &&
-      rm ec2-ami-tools.noarch.rpm
-    CMD
-  end
+class Aws
+require 'ec2'
 
-  private
+  def initialize
+    @access_key   = 'YOUR-AWS-ACCESS-KEY'
+    @secret_key   = 'YOUR-AWS-SECRET-KEY'
+    @account      = 'YOUR-AWS-ACCOUNT-NUMBER'
+    @key_path     = 'WHERE-YOU-WANT-YOUR-KEY-STORED-LOCALLY'
+    @keyname = 'YOUR-KEYNAME-CAN-BE-ANYTHING'
+    
+    @url = 'YOUR-EC2-URL-AFTER-CREATING-AN-INSTNACE'
+
+    #s3 Related
+    @image_bucket = "THE-NAME-OF-THE-STORAGE-BUCKET-AT-S2"
+    
+  end
+  
+  def access
+    { :key => @access_key, :secret => @secret_key, :account => @account, :url => @url }
+  end
+  
+  def key
+    { :name => @keyname, :path => @key_path }
+  end
   
   def connect
-    amazon = EC2::Base.new(:access_key_id => aws('access_key'), :secret_access_key => aws('secret_key'))
+    amazon = EC2::Base.new(:access_key_id => @access_key, :secret_access_key => @secret_key)
     raise Exception, "Connection to AWS failed. Check your Access Key ID and Secret Access Key - http://aws.amazon.com/" if amazon.nil?
     return amazon
   end
-  
-  def bash(cmd)
-    puts(cmd) 
-    system(cmd)
-  end
-  
+
   # The timestamp is used when bun
   def get_timestamp
     Time.now.utc.strftime("%b%d%Y")
-  end
-  
-  
-  
+  end  
+end
