@@ -1,9 +1,9 @@
-namespace :utilities do
+namespace :server do
   desc <<-DESC
   Restart the server
   DESC
   task :restart, :roles => :app do 
-    case server
+    case app_server
       when 'litespeed'
         sudo "#{ls_bin} restart"
       else
@@ -15,7 +15,7 @@ namespace :utilities do
   Start the server.
   DESC
   task :start, :roles => :app do
-    case server
+    case app_server
       when 'litespeed'
         on_rollback { sudo "#{ls_bin} stop" }
         sudo "#{ls_bin} start"
@@ -26,7 +26,7 @@ namespace :utilities do
   end
 
   task :stop, :roles => :app do 
-    case server
+    case app_server
       when 'litespeed'
         on_rollback { sudo "#{ls_bin} stop" }
         sudo "#{aws('ls_bin')} stop"
@@ -38,15 +38,15 @@ namespace :utilities do
   desc <<-DESC
   Write patches to the server.
   DESC
-  task :patch_server, :roles => :app do
+  task :patch, :roles => :app do
     # generate the contents for an hourly cron job file
-    hourly_cron = render :template => <<-EOF
+    hourly_cron = <<-EOF
   #!/bin/bash
   # This script should be called hourly
 
   #backup the db to s3
   cd /home/#{user}/#{application}/current
-  rake --trace RAILS_ENV=#{aws('mode')} s3:backup:db
+  rake --trace RAILS_ENV=production s3:backup:db
 
   #cleanup our old backups at s3
   rake s3:manage:clean_up
@@ -63,20 +63,25 @@ namespace :utilities do
   A user (ec2admin) is pre-created on the image. This task adds a new
   user to the image. The ec2admin user is then deleted.
   DESC
-  task :add_user
+  task :add_user do
     #add the defined user. 
     #the ec2admin is pre-created user on the image.
-    sudo "-u ec2admin /usr/sbin/useradd -g www #{user}" 
+    #sudo "-u ec2admin /usr/sbin/useradd -g www #{user}" 
     #sudo "/usr/sbin/useradd -g www #{aws('user_secondary')}"
   
     #create their passwords
-    sudo <<-CMD
-      -u ec2admin &&
-      echo "#{user_password}" | sudo passwd --stdin #{user}
-    CMD
+    #sudo <<-CMD
+    #  -u ec2admin &&
+    #  echo "#{user_password}" | sudo passwd --stdin #{user}
+    #CMD
   
     #give full permissions to the primary user directory
-    sudo "-u ec2admin chmod g+rwx /home/#{user}"
+    
+  end
+  
+  task :permissions do
+    sudo "chown -R ec2admin.www /mnt/"
+    sudo "-u ec2admin chmod g+rwx /mnt/"
   end
 
   desc <<-DESC

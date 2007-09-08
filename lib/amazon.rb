@@ -33,7 +33,8 @@ namespace :ec2 do
   Run an image. You must first get the ami id by running cap ec2:images.
   Example - cap -s image=ami-08806561 launch_instance
   DESC
-  task :launch_instance do
+  task :launch do
+    ami = "ami-08806561" if ami.nil?
     setup_keyname
     reservation = @aws.connect.run_instances(:image_id => ami, :key_name=>@aws.key[:name])
     reservation.instancesSet.item.each do |item|
@@ -177,6 +178,11 @@ require 'ec2'
   
   def key
     { :name => @keyname, :path => @key_path }
+  end
+  
+  def bash(cmd)
+    puts(cmd) 
+    system(cmd)
   end
   
   def connect

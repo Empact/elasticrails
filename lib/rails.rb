@@ -1,7 +1,7 @@
 namespace :rails do
-# Install ruby gems
 
-  task :install_ruby_gems
+  desc "Install ruby gems"
+  task :install_ruby_gems do
     # TODO: make these hardcoded URLs variable so we can use the latest versions easily
     run <<-CMD
         wget http://rubyforge.org/frs/download.php/11289/rubygems-0.9.0.tgz &&
@@ -19,12 +19,12 @@ namespace :rails do
   end
 
   # Install rails
-  task :install
+  task :install do
     sudo "gem install -y --no-rdoc --no-ri rails"
   end
 
   # Setup Database Configuration
-  task :write_database_yaml 
+  task :write_database_yaml do
     database_configuration = <<-EOF
   defaults: &defaults
     adapter: #{db_adapter} 
@@ -47,6 +47,20 @@ namespace :rails do
   
     #run "mkdir -p #{shared_path}/config" 
     put database_configuration, "#{shared_path}/config/database.yml", :mode => 0664
-    sudo "chown -R #{user}:#{aws('group')} #{shared_path}/config/database.yml"
+    sudo "chown -R #{user}:www #{shared_path}/config/database.yml"
+    
+    run <<-CMD
+        ln -nfs #{shared_path}/config/database.yml #{release_path}/config/database.yml
+    CMD
+  end
+  
+  desc "create a place to keep our shared database.yml"
+  task :add_shared_config do
+    run "mkdir -p #{shared_path}/config" 
+  end
+  
+  desc "install software specific to your applications"
+  task :install_dependencies do
+    #sudo "gem install -y ruby-openid"
   end
 end

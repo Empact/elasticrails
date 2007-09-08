@@ -1,5 +1,5 @@
 namespace :mysql do
-  task :create_databases #, :roles => :db, :only => { :primary => true } do
+  task :create_databases do #, :roles => :db, :only => { :primary => true } do
     on_rollback do 
       run <<-CMD
         mysqladmin -u #{db_user} -p#{db_password} drop #{application}_development &&
@@ -15,7 +15,7 @@ namespace :mysql do
   end
   
   # Configure mysql
-  task :configure
+  task :configure do
     #Create new data directory on mnt/. We can easily run out of room on sda1.
     #sudo "mkdir /mnt/mysql_db"
     #sudo "chown #{user}.www /mnt/mysql_db/"
@@ -30,10 +30,13 @@ namespace :mysql do
 
     sudo <<-CMD
       mysql -u root -p#{db_password} -e "GRANT ALL PRIVILEGES ON *.* TO '#{db_user}'@'%' IDENTIFIED BY '#{db_password}' WITH GRANT OPTION;" &&
-      mysql -u root -p#{db_password} -e "GRANT ALL PRIVILEGES ON *.* TO '#{db_user}'@'localhost' IDENTIFIED BY '#{db_password}' WITH GRANT OPTION;" &&
+      mysql -u root -p#{db_password} -e "GRANT ALL PRIVILEGES ON *.* TO '#{db_user}'@'localhost' IDENTIFIED BY '#{db_password}' WITH GRANT OPTION;"
       CMD
 
     sudo "/sbin/chkconfig mysqld on"
+    
+    #TODO: Add to new updated image
+    sudo "chown -R mysql.mysql /mnt/mysql_db"
 
   end
   
