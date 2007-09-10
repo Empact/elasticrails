@@ -31,7 +31,6 @@ after "deploy:update_code", "rails:write_database_yaml"
 
 task :initial_deploy do
   setup_server
-  #server.start
   install_app
 end
 
